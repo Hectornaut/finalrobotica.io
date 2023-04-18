@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Películas</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+    <h1>¡Bienvenido a nuestro recomendador de películas!</h1>
+    <p>Por favor, responde a las siguientes preguntas para recibir tu recomendación personalizada.</p>
+
+    <form>
+        <label for="genre">¿Qué género de película te gustaría ver hoy?</label>
+        <input type="text" id="genre" name="genre"><br><br>
+        <button type="button" onclick="recomendar()">Recomendar</button>
+        <button type="button" onclick="recomendarAleatoria()">Recomendar película aleatoria</button>
+    </form>
+
+    <br>
+
+    <h2>Recomendaciones</h2>
+    <ul id="recomendaciones"></ul>
+
+    <br>
+
+    <h2>Lista de películas que te gustan</h2>
+    <ul id="peliculas-gustan"></ul>
+
+    <br>
+
+    <button type="button" onclick="eliminar()">Eliminar</button>
+    <button type="button" onclick="agregar()">Agregar otro género</button>
+    <button type="button" onclick="meGusta()">Me gusta</button>
+    <button type="button" onclick="noMeGusta()">No me gusta</button>
+    <button type="button" onclick="salir()">Salir</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/pandas@1.3.5/dist/pandas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/random-js@1.2.0/dist/random.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pysimplegui@4.53.0/dist/pysimplegui.min.js"></script>
+
+    <script>
+        const movies_df = pd.read_csv("C:/Users/Hector/OneDrive/Escritorio/movies.csv");
+
+        function recomendar_pelicula(genre) {
+            peliculas_filtradas = movies_df[movies_df['genres'].str.contains(genre, case=false)];
+            if (peliculas_filtradas.empty) {
+                return "Lo siento, no hay películas de ese género en nuestra base de datos";
+            } else {
+                pelicula = peliculas_filtradas.sample();
+                return pelicula['title'].values[0];
+            }
+        }
+
+        function recomendar() {
+            const genero = document.getElementById("genre").value;
+            const pelicula_recomendada = recomendar_pelicula(genero);
+            document.getElementById("recomendaciones").innerHTML = `<li>${pelicula_recomendada}</li>`;
+        }
+
+        function recomendarAleatoria() {
+            const pelicula_recomendada = movies_df.sample()['title'].values[0];
+            document.getElementById("recomendaciones").innerHTML = `<li>${pelicula_recomendada}</li>`;
+        }
+
+        let peliculas_gustan = [];
+
+        function meGusta() {
+    const seleccion = document.getElementById("recomendaciones").value;
+    if (seleccion) {
+        peliculas_gustan.push(seleccion);
+        alert(`¡Te ha gustado ${seleccion}!`);
+        document.getElementById("peliculas-gustan").innerHTML += `<li>${seleccion}</li>`;
+    }
+}
+
+function noMeGusta() {
+    const seleccion = document.getElementById("recomendaciones").value;
+    if (seleccion) {
+        const index = peliculas_gustan.indexOf(seleccion);
+        if (index !== -1) {
+            peliculas_gustan.splice(index, 1);
+            document.getElementById("peliculas-gustan").innerHTML = peliculas_gustan.map(pelicula => `<li>${pelicula}</li>`).join("");
+        }
+    }
+}
+
+document.getElementById("recomendar-btn").addEventListener("click", () => {
+    const genero = document.getElementById("genre").value;
+    const url = `http://localhost:8000/recomendar?genero=${genero}`;
+    fetch(url)
+        .then(response => response.text())
+        .then(pelicula => {
+            document.getElementById("recomendaciones").innerHTML = `<option value="${pelicula}">${pelicula}</option>`;
+        })
+        .catch(error => console.error(error));
+});
+
+document.getElementById("recomendar-random-btn").addEventListener("click", () => {
+    const url = "http://localhost:8000/recomendar-random";
+    fetch(url)
+        .then(response => response.text())
+        .then(pelicula => {
+            document.getElementById("recomendaciones").innerHTML = `<option value="${pelicula}">${pelicula}</option>`;
+        })
+        .catch(error => console.error(error));
+});
+
+document.getElementById("me-gusta-btn").addEventListener("click", meGusta);
+
+document.getElementById("no-me-gusta-btn").addEventListener("click", noMeGusta);
+
+
